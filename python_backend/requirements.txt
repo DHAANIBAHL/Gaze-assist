@@ -1,5 +1,6 @@
 opencv-python>=4.10.0
 mediapipe>=0.10.30
+python-dotenv>=1.0.0
 flask>=3.0.0
 flask-cors>=4.0.0
 flask-socketio>=5.3.0

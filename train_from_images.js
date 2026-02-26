@@ -4,9 +4,10 @@
  * This script processes eye images from the Dataset folder and trains the gaze model.
  * It extracts eye features from images and maps them to gaze positions.
  * 
- * Usage: npm run train-from-images
+ * Usage: npm run train
  */
 
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
@@ -20,7 +21,7 @@ try {
     console.log('⚠️  Sharp not available, using basic image processing');
 }
 
-const API_BASE = 'http://localhost:4000';
+const API_BASE = process.env.REACT_APP_API_URL || process.env.API_URL || 'http://localhost:4000';
 const USER_ID = 'image_trained_user_' + Date.now();
 
 // Dataset configuration

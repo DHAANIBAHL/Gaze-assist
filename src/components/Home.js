@@ -89,22 +89,22 @@ const Home = () => {
           <h2>How It Works</h2>
           <div className="steps-grid">
             <div className="step-card">
-              <img src="/step1.jpg" alt="Position camera" />
+              <img src="/step1.svg" alt="Position camera" />
               <h3>1. Position Your Camera</h3>
               <p>Place your camera at eye level for best tracking accuracy.</p>
             </div>
             <div className="step-card">
-              <img src="/step2.jpg" alt="Proper lighting" />
+              <img src="/step2.svg" alt="Proper lighting" />
               <h3>2. Ensure Proper Lighting</h3>
               <p>Avoid strong backlight and keep your face clearly visible.</p>
             </div>
             <div className="step-card">
-              <img src="/step3.jpg" alt="Follow calibration" />
+              <img src="/step3.svg" alt="Follow calibration" />
               <h3>3. Follow Calibration Points</h3>
               <p>Look at each point until the circle completes.</p>
             </div>
             <div className="step-card">
-              <img src="/step 4.jpg" alt="Start tracking" />
+              <img src="/step4.svg" alt="Start tracking" />
               <h3>4. Start Using Gaze Control</h3>
               <p>Move your eyes to control the cursor naturally.</p>
             </div>
