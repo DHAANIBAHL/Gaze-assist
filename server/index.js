@@ -7,7 +7,7 @@ const CalibrationService = require('./calibrationService');
 const ModelManager = require('./modelManager');
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = process.env.API_PORT || process.env.PORT || 4000;
 
 // Initialize services
 const calibrationService = new CalibrationService();

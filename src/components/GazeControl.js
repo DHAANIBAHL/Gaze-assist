@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './GazeControl.css';
 
-const PYTHON_BACKEND = 'http://localhost:5001';
+const PYTHON_BACKEND = process.env.REACT_APP_PYTHON_BACKEND || 'http://localhost:5001';
 const DWELL_TIME_MS = 1400;  // ms hold to trigger click
 const DWELL_RADIUS = 45;    // px radius for dwell zone
 
@@ -33,10 +33,6 @@ function classifyHandGesture(landmarks) {
   return null;
 }
 
-// ── Circumference constant ────────────────────────────────────────────────────
-const R = 22;
-const CIRCUM = 2 * Math.PI * R;
-
 // ── Component ─────────────────────────────────────────────────────────────────
 const GazeControl = ({ gazeTracker, onRecalibrate }) => {
   // React state – only for HUD elements (infrequently updated)
@@ -44,10 +40,7 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
   const [gesture, setGesture] = useState(null);
   const [backendOk, setBackendOk] = useState(false);
 
-  // DOM refs for high-frequency cursor updates (no re-renders)
-  const cursorWrapRef = useRef(null);  // gaze-cursor wrapper
-  const dwellSvgRef = useRef(null);  // dwell SVG container
-  const dwellFillRef = useRef(null);  // dwell progress circle
+  // DOM refs
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const socketRef = useRef(null);
@@ -59,25 +52,7 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
   const gestureTimerRef = useRef(null);
   const gestureActiveRef = useRef(null); // avoid repeated fires for same gesture
 
-  // ── Low-level cursor move (direct DOM, zero React overhead) ──────────────────
-  const moveCursor = useCallback((x, y) => {
-    if (!cursorWrapRef.current) return;
-    cursorWrapRef.current.style.transform =
-      `translate3d(${x}px,${y}px,0) translate(-50%,-50%)`;
-  }, []);
-
-  // ── Dwell ring update ─────────────────────────────────────────────────────────
-  const setDwellRing = useCallback((progress) => {
-    if (!dwellSvgRef.current || !dwellFillRef.current) return;
-    if (progress <= 0) {
-      dwellSvgRef.current.style.opacity = '0';
-      return;
-    }
-    dwellSvgRef.current.style.opacity = '1';
-    dwellFillRef.current.style.strokeDashoffset = `${CIRCUM * (1 - progress / 100)}`;
-  }, []);
-
-  // ── Click simulation ──────────────────────────────────────────────────────────
+  // ── Click simulation (uses system cursor position; works with mouse/trackpad too) ─
   const simulateClick = useCallback((px) => {
     const ripple = document.createElement('div');
     ripple.className = 'click-ripple';
@@ -87,38 +62,30 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
     setTimeout(() => ripple.remove(), 700);
 
     const target = document.elementFromPoint(px.x, px.y);
-    if (target && target !== cursorWrapRef.current &&
-      !cursorWrapRef.current?.contains(target)) {
-      target.click();
-    }
+    if (target) target.click();
   }, []);
 
   // ── Dwell detection ───────────────────────────────────────────────────────────
   const handleDwell = useCallback((px) => {
     if (!dwellStartRef.current) {
       dwellStartRef.current = { px, t: Date.now() };
-      setDwellRing(0);
       return;
     }
 
     const moved = dist2D(px, dwellStartRef.current.px);
     if (moved > DWELL_RADIUS) {
       dwellStartRef.current = { px, t: Date.now() };
-      setDwellRing(0);
       return;
     }
 
     const elapsed = Date.now() - dwellStartRef.current.t;
     const progress = Math.min((elapsed / DWELL_TIME_MS) * 100, 100);
-    setDwellRing(progress);
 
     if (progress >= 100) {
       simulateClick(px);
-      // brief lockout
       dwellStartRef.current = { px, t: Date.now() + 700 };
-      setDwellRing(0);
     }
-  }, [setDwellRing, simulateClick]);
+  }, [simulateClick]);
 
   // ── Camera init (for local hand detection video element) ─────────────────────
   useEffect(() => {
@@ -147,7 +114,7 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
     let active = true;
 
     const waitForVideo = setInterval(() => {
-      if (!videoRef.current?.readyState >= 2) return;
+      if (!videoRef.current || videoRef.current.readyState < 2) return;
       clearInterval(waitForVideo);
 
       const hands = new window.Hands({
@@ -210,12 +177,12 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
         if (!mounted) return;
         setBackendOk(false);
         setFaceDetected(false);
-        setDwellRing(0);
       });
 
-      socket.on('connect_error', () => {
+      socket.on('connect_error', (err) => {
         if (!mounted) return;
         setBackendOk(false);
+        console.warn('[GazeControl] Python backend connection failed. Is it running? (npm run backend)', err?.message || err);
       });
 
       socket.on('gaze_data', (data) => {
@@ -246,10 +213,7 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
         const px = { x: sx, y: sy };
         lastPosRef.current = px;
 
-        // Move cursor (direct DOM – no state update)
-        moveCursor(sx, sy);
-
-        // Dwell
+        // Dwell (system cursor moved by Python backend via pyautogui; mouse/trackpad also work)
         if (data.faceDetected) {
           handleDwell(px);
         } else {
@@ -287,7 +251,7 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
       socketRef.current?.disconnect();
       clearTimeout(gestureTimerRef.current);
     };
-  }, [gazeTracker, handleDwell, moveCursor, setDwellRing, simulateClick, onRecalibrate]);
+  }, [gazeTracker, handleDwell, simulateClick, onRecalibrate]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -302,9 +266,9 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
           <span>{faceDetected ? 'Eyes Tracked' : 'No Face Detected'}</span>
         </div>
 
-        <div className="gc-badge">
+        <div className="gc-badge" title={!backendOk ? 'Start Python backend: npm run backend' : ''}>
           <span className={`gc-dot ${backendOk ? 'ok' : 'warn'}`} />
-          <span>{backendOk ? 'Tracker Active' : 'Connecting…'}</span>
+          <span>{backendOk ? 'Tracker Active' : 'Connecting… (run npm run backend)'}</span>
         </div>
 
         {gesture && (
@@ -321,38 +285,12 @@ const GazeControl = ({ gazeTracker, onRecalibrate }) => {
       {/* ── Info panel ── */}
       <div className="gc-info-panel">
         <h2>Gaze Control Active</h2>
-        <p>Look around to move the cursor</p>
+        <p>Use mouse/trackpad or eye tracking to move the cursor</p>
         <ul className="gc-instructions">
           <li><span className="ic">👁️</span> Hold gaze for 1.4 s to click</li>
           <li><span className="ic">🤏</span> Pinch gesture for instant click</li>
           <li><span className="ic">✋</span> Open palm to recalibrate</li>
         </ul>
-      </div>
-
-      {/* ── Gaze cursor (positioned via direct DOM in moveCursor) ── */}
-      <div
-        ref={cursorWrapRef}
-        className="gaze-cursor"
-        style={{ position: 'fixed', left: 0, top: 0, willChange: 'transform' }}
-      >
-        <div className="cursor-core" />
-
-        {/* Dwell ring SVG (shown/hidden via opacity in setDwellRing) */}
-        <svg
-          ref={dwellSvgRef}
-          className="dwell-svg"
-          viewBox="0 0 50 50"
-          style={{ opacity: 0 }}
-        >
-          <circle className="dwell-bg" cx="25" cy="25" r={R} />
-          <circle
-            ref={dwellFillRef}
-            className="dwell-fill"
-            cx="25" cy="25" r={R}
-            strokeDasharray={CIRCUM}
-            strokeDashoffset={CIRCUM}
-          />
-        </svg>
       </div>
     </div>
   );

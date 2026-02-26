@@ -16,7 +16,7 @@ const CALIBRATION_POINTS = [
 
 const SAMPLES_PER_POINT = 40;   // number of gaze samples to average per dot
 const WAIT_BEFORE_MS = 1800; // ms to wait before collecting (let eyes settle)
-const PYTHON_BACKEND = 'http://localhost:5001';
+const PYTHON_BACKEND = process.env.REACT_APP_PYTHON_BACKEND || 'http://localhost:5001';
 
 const Calibration = ({ gazeTracker, onComplete, onCancel }) => {
   const [phase, setPhase] = useState('intro');      // intro | collecting | done | error
@@ -27,7 +27,7 @@ const Calibration = ({ gazeTracker, onComplete, onCancel }) => {
   const [gazePos, setGazePos] = useState({ x: 0.5, y: 0.5 });
   // For now we don't block on face detection – the user can
   // visually verify in the camera preview. Always treat as OK.
-  const [faceOk, setFaceOk] = useState(true);
+  const [faceOk] = useState(true);
 
   const socketRef = useRef(null);
   const samplesRef = useRef([]);

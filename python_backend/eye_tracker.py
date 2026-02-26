@@ -6,6 +6,18 @@ Compatible with mediapipe >= 0.10.x
 Streams real-time gaze / gesture data to the React frontend via WebSocket.
 """
 
+import os
+from pathlib import Path
+
+# Load .env from python_backend dir when run standalone (optional; requires python-dotenv)
+_env_path = Path(__file__).resolve().parent / '.env'
+if _env_path.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_path)
+    except ImportError:
+        pass  # dotenv not installed; rely on env vars from parent (e.g. run-backend.js)
+
 import cv2
 import numpy as np
 import mediapipe as mp
@@ -23,7 +35,6 @@ from flask_socketio import SocketIO, emit
 import threading
 import time
 import logging
-import os
 import urllib.request
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -31,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 # ── Flask app ─────────────────────────────────────────────────────────────────
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'gazeassist_2024'
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'fallback_secret')
 CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
@@ -301,8 +312,8 @@ def tracking_loop():
                 logger.warning(f"Face detect error: {e}")
                 face_error_logged = True
 
-        # Move OS mouse pointer if enabled (with extra smoothing + deadzone)
-        if pyautogui is not None and screen_w and screen_h:
+        # Move OS mouse pointer only if MOVE_SYSTEM_CURSOR=1 (default: use physical mouse/trackpad)
+        if os.getenv('MOVE_SYSTEM_CURSOR', '').strip() == '1' and pyautogui is not None and screen_w and screen_h:
             try:
                 gx_n = float(np.clip(gaze_x, 0.0, 1.0))
                 gy_n = float(np.clip(gaze_y, 0.0, 1.0))
@@ -342,16 +353,19 @@ def tracking_loop():
             'faceDetected': face_detected,
             'gesture':      gesture,
         })
-        
-        cv2.imshow("gray", gray)
-        cv2.imshow("Debug Face", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+
+        # Only show debug windows when DEBUG=1 env var is set
+        if os.getenv('DEBUG', '').strip() == '1':
+            cv2.imshow("gray", gray)
+            cv2.imshow("Debug Face", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
         time.sleep(0.020)
 
     cap.release()
-    cv2.destroyAllWindows()
+    if os.getenv('DEBUG', '').strip() == '1':
+        cv2.destroyAllWindows()
     face_det.close()
     hand_det.close()
     logger.info("Tracking loop stopped")

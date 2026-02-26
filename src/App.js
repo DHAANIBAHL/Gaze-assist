@@ -13,9 +13,10 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let tracker = null;
     const initializeTracker = async () => {
       setIsLoading(true);
-      const tracker = new GazeTracker();
+      tracker = new GazeTracker();
       const success = await tracker.initialize();
       
       if (success) {
@@ -31,8 +32,8 @@ function App() {
     initializeTracker();
 
     return () => {
-      if (gazeTracker) {
-        gazeTracker.dispose();
+      if (tracker) {
+        tracker.dispose();
       }
     };
   }, []);
@@ -139,7 +140,7 @@ function Navigation() {
     <nav className="navbar">
       <div className="nav-left">
         <Link to="/" className="logo-link">
-          <img src="/logo.jpg" alt="GazeAssist Logo" className="logo" />
+          <img src="/logo.svg" alt="GazeAssist Logo" className="logo" />
           <div className="brand-info">
             <div className="brand">GazeAssist</div>
             <div className="tagline">Unlock the power of gaze</div>
