@@ -1,0 +1,19 @@
+from google.colab import drive
+
+# Mount the drive at the specified path
+drive.mount('/content/drive')
+
+print("\nGoogle Drive mounted successfully. Files can now be accessed.")
+
+import os
+
+DATASET_PATH = "/content/drive/MyDrive/Gaze detection/"
+
+# Check if path exists
+if os.path.exists(DATASET_PATH):
+    print("Dataset directory found.\n")
+    print("Contents of the dataset directory:")
+    for item in os.listdir(DATASET_PATH):
+        print(f" - {item}")
+else:
+    print("Dataset directory not found. Please check the path.")
