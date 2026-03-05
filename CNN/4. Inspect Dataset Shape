@@ -1,0 +1,20 @@
+# ---- Load X dataset ----
+X = X_file['X']  # Access the dataset inside the .mat file
+print(f"Shape of X dataset: {X.shape}")
+
+# ---- Load Y dataset ----
+Y_path = "/content/drive/MyDrive/Gaze detection/Y_mpiigaze_gaze.mat"
+Y_data = scipy.io.loadmat(Y_path)
+
+print("\nKeys inside Y dataset file:")
+for key in Y_data.keys():
+    print(f" - {key}")  # just to confirm keys
+
+# Extract the actual Y data
+Y = Y_data['Y'] 
+print(f"\nShape of Y dataset: {Y.shape}")
+
+with h5py.File(X_PATH, 'r') as X_file:
+    print("Available datasets:", list(X_file.keys()))
+    print("Shape of X:", X_file['X'].shape)
+
