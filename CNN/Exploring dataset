@@ -1,0 +1,35 @@
+import os
+import h5py
+import numpy as np
+
+X_FILE_PATH = "/content/drive/MyDrive/Gaze detection/X_mpiigaze_normalized.mat"
+Y_FILE_PATH = "/content/drive/MyDrive/Gaze detection/Y_mpiigaze_gaze.mat"
+
+# Check if each file exists and print a clear message
+if os.path.exists(X_FILE_PATH):
+    print(f"Found X dataset file: {X_FILE_PATH}")
+else:
+    print(f"X dataset file not found at: {X_FILE_PATH}")
+
+if os.path.exists(Y_FILE_PATH):
+    print(f"Found Y dataset file: {Y_FILE_PATH}")
+else:
+    print(f"Y dataset file not found at: {Y_FILE_PATH}")
+
+# Paths to the dataset files
+X_PATH = "/content/drive/MyDrive/Gaze detection/X_mpiigaze_normalized.mat"
+Y_PATH = "/content/drive/MyDrive/Gaze detection/Y_mpiigaze_gaze.mat"
+
+# 4a. Check size of Y dataset file
+y_size_bytes = os.path.getsize(Y_PATH)
+y_size_mb = y_size_bytes / (1024 * 1024)
+print(f"Size of Y dataset file: {y_size_mb:.2f} MB")
+
+# 4b. Open the X dataset file using h5py
+X_file = h5py.File(X_PATH, 'r')
+
+# List all datasets/keys inside the X file
+x_keys = list(X_file.keys())
+print("\nDatasets available inside X file:")
+for key in x_keys:
+    print(f" - {key}")
